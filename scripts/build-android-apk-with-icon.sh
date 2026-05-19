@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+app_name="nosave-chat"
+target_triple="${1:-aarch64-linux-android}"
+icon="$root/assets/icon.png"
+android_app="$root/target/dx/$app_name/release/android/app"
+res_dir="$android_app/app/src/main/res"
+out_dir="$root/dist"
+out_apk="$out_dir/NoSaveChat-${target_triple}.apk"
+
+if [[ ! -f "$icon" ]]; then
+  echo "Missing icon: $icon" >&2
+  echo "Create it with: magick assets/icon-1024.png -resize 256x256 PNG32:assets/icon.png" >&2
+  exit 1
+fi
+
+cd "$root"
+
+tailwindcss -i ./tailwind.css -o ./assets/tailwind.css
+dx bundle --android --release --package-types apk --target "$target_triple"
+
+if [[ ! -d "$res_dir" ]]; then
+  echo "Missing generated Android res dir: $res_dir" >&2
+  exit 1
+fi
+
+declare -A sizes=(
+  [mipmap-mdpi]=48
+  [mipmap-hdpi]=72
+  [mipmap-xhdpi]=96
+  [mipmap-xxhdpi]=144
+  [mipmap-xxxhdpi]=192
+)
+
+for dir in "${!sizes[@]}"; do
+  mkdir -p "$res_dir/$dir"
+  magick "$icon" -resize "${sizes[$dir]}x${sizes[$dir]}" "$res_dir/$dir/ic_launcher.webp"
+done
+
+# Dioxus currently emits the default adaptive icon XML. Remove it so Android
+# uses the density-specific launcher images above.
+rm -rf "$res_dir/mipmap-anydpi-v26"
+rm -f "$res_dir/drawable/ic_launcher_background.xml"
+rm -f "$res_dir/drawable-v24/ic_launcher_foreground.xml"
+
+cd "$android_app"
+./gradlew clean
+./gradlew assembleDebug
+
+mkdir -p "$out_dir"
+cp "$android_app/app/build/outputs/apk/debug/app-debug.apk" "$out_apk"
+
+echo "Built $out_apk"

@@ -1,6 +1,10 @@
 [application]
 name = "NoSave Chat"
+
+[bundle]
 identifier = "com.swarnim.nosavechat"
+publisher = "Swarnim"
+icon = ["assets/icon.png"]
 
 [web.app]
 
