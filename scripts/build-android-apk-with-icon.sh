@@ -71,6 +71,38 @@ assemble_task="assemble$(tr '[:lower:]' '[:upper:]' <<< "$build_variant")"
 ./gradlew "$assemble_task"
 
 mkdir -p "$out_dir"
-cp "$android_app/app/build/outputs/apk/$build_variant/app-$build_variant.apk" "$out_apk"
+apk_output_dir="$android_app/app/build/outputs/apk/$build_variant"
+if [[ ! -d "$apk_output_dir" ]]; then
+  echo "Missing APK output directory: $apk_output_dir" >&2
+  exit 1
+fi
 
-echo "Built $out_apk"
+generated_apk=""
+if [[ -f "$apk_output_dir/app-$build_variant.apk" ]]; then
+  generated_apk="$apk_output_dir/app-$build_variant.apk"
+elif [[ -f "$apk_output_dir/app-$build_variant-unsigned.apk" ]]; then
+  generated_apk="$apk_output_dir/app-$build_variant-unsigned.apk"
+elif [[ -f "$apk_output_dir/app-$build_variant-unaligned.apk" ]]; then
+  generated_apk="$apk_output_dir/app-$build_variant-unaligned.apk"
+else
+  apk_candidates=()
+  while IFS= read -r file; do
+    apk_candidates+=("$file")
+  done < <(find "$apk_output_dir" -maxdepth 1 -type f -name "*.apk" | sort)
+
+  if [[ ${#apk_candidates[@]} -eq 0 ]]; then
+    echo "No apk files found in: $apk_output_dir" >&2
+    find "$apk_output_dir" -maxdepth 1 -type f
+    exit 1
+  fi
+
+  if [[ ${#apk_candidates[@]} -gt 1 ]]; then
+    echo "Multiple APK outputs found:"
+    printf ' - %s\n' "${apk_candidates[@]}"
+    echo "Picking first matching file after sorting."
+  fi
+  generated_apk="${apk_candidates[-1]}"
+fi
+
+cp "$generated_apk" "$out_apk"
+echo "Built $out_apk from $generated_apk"
