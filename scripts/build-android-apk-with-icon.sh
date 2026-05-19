@@ -12,7 +12,7 @@ out_apk="$out_dir/NoSaveChat-${target_triple}.apk"
 
 if [[ ! -f "$icon" ]]; then
   echo "Missing icon: $icon" >&2
-  echo "Create it with: magick assets/icon-1024.png -resize 256x256 PNG32:assets/icon.png" >&2
+  echo "Create it with: imagemagick convert or magick (example: convert assets/icon-1024.png -resize 256x256 -alpha off -background transparent -flatten PNG32:assets/icon.png)" >&2
   exit 1
 fi
 
@@ -36,7 +36,16 @@ declare -A sizes=(
 
 for dir in "${!sizes[@]}"; do
   mkdir -p "$res_dir/$dir"
-  magick "$icon" -resize "${sizes[$dir]}x${sizes[$dir]}" "$res_dir/$dir/ic_launcher.webp"
+  if command -v magick >/dev/null 2>&1; then
+    image_cmd=(magick)
+  elif command -v convert >/dev/null 2>&1; then
+    image_cmd=(convert)
+  else
+    echo "ImageMagick is required but neither 'magick' nor 'convert' was found in PATH." >&2
+    exit 1
+  fi
+
+  "${image_cmd[@]}" "$icon" -resize "${sizes[$dir]}x${sizes[$dir]}" "$res_dir/$dir/ic_launcher.webp"
 done
 
 # Dioxus currently emits the default adaptive icon XML. Remove it so Android

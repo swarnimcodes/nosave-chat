@@ -16,6 +16,8 @@ env:
   DIOXUS_CLI_VERSION: "0.7.9"
   TAILWIND_VERSION: "v4.3.0"
   APK_PATH: dist/NoSaveChat-aarch64-linux-android.apk
+  DX_BIN_DIR: .github/bin/dx-0.7.9
+  TAILWIND_BIN_DIR: .github/bin/tailwindcss-v4.3.0
 
 jobs:
   android-apk:
@@ -34,6 +36,30 @@ jobs:
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
 
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Cache Dioxus CLI
+        if: github.event_name != 'pull_request'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.DX_BIN_DIR }}
+          key: dioxus-cli-${{ env.DIOXUS_CLI_VERSION }}-${{ runner.os }}
+
+      - name: Cache Tailwind CSS CLI
+        if: github.event_name != 'pull_request'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.TAILWIND_BIN_DIR }}
+          key: tailwindcss-${{ env.TAILWIND_VERSION }}-${{ runner.os }}
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -41,6 +67,12 @@ jobs:
 
       - name: Install Android SDK
         uses: android-actions/setup-android@v3
+
+      - name: Cache Android NDK
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_HOME }}/ndk/30.0.14904198
+          key: android-ndk-30.0.14904198-${{ runner.os }}
 
       - name: Install Android NDK
         run: sdkmanager "ndk;30.0.14904198"
@@ -52,14 +84,22 @@ jobs:
 
       - name: Install Dioxus CLI
         if: github.event_name != 'pull_request'
-        run: cargo install dioxus-cli --version "$DIOXUS_CLI_VERSION" --locked
+        run: |
+          if [[ ! -x "$DX_BIN_DIR/bin/dx" ]]; then
+            mkdir -p "$DX_BIN_DIR"
+            cargo install dioxus-cli --version "$DIOXUS_CLI_VERSION" --locked --root "$DX_BIN_DIR"
+          fi
+          echo "$PWD/$DX_BIN_DIR/bin" >> "$GITHUB_PATH"
 
       - name: Install Tailwind CSS CLI
         if: github.event_name != 'pull_request'
         run: |
-          curl -fsSL -o tailwindcss "https://github.com/tailwindlabs/tailwindcss/releases/download/${TAILWIND_VERSION}/tailwindcss-linux-x64"
-          chmod +x tailwindcss
-          sudo mv tailwindcss /usr/local/bin/tailwindcss
+          if [[ ! -x "$TAILWIND_BIN_DIR/tailwindcss" ]]; then
+            mkdir -p "$TAILWIND_BIN_DIR"
+            curl -fsSL -o "$TAILWIND_BIN_DIR/tailwindcss" "https://github.com/tailwindlabs/tailwindcss/releases/download/${TAILWIND_VERSION}/tailwindcss-linux-x64"
+            chmod +x "$TAILWIND_BIN_DIR/tailwindcss"
+          fi
+          echo "$PWD/$TAILWIND_BIN_DIR" >> "$GITHUB_PATH"
 
       - name: Build APK
         if: github.event_name != 'pull_request'
