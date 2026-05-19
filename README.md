@@ -28,16 +28,25 @@ rustup target add x86_64-linux-android
 
 ## Development
 
+Common commands:
+
+```sh
+make serve
+make android-build
+make tailwind-watch
+make install-apk TARGET=aarch64-linux-android
+```
+
 Run Tailwind in one terminal:
 
 ```sh
-tailwindcss -i ./tailwind.css -o ./assets/tailwind.css --watch
+make tailwind-watch
 ```
 
 Run the Android app in another terminal:
 
 ```sh
-dx serve --android
+make serve
 ```
 
 The generated stylesheet is committed at `assets/tailwind.css` because automatic Tailwind generation through `dx serve --android` may not run consistently in this project.
@@ -47,19 +56,38 @@ The generated stylesheet is committed at `assets/tailwind.css` because automatic
 Build a release Android App Bundle for ARM64 phones:
 
 ```sh
-dx bundle --android --release --package-types aab --target aarch64-linux-android
+make android-release-bundle TARGET=aarch64-linux-android
 ```
 
 Build an APK for local install/testing:
 
 ```sh
-dx bundle --android --release --package-types apk --target aarch64-linux-android
+make android-apk-bundle TARGET=aarch64-linux-android
 ```
+
+For release APKs with automatic icon replacement:
+
+```sh
+make android-release-build TARGET=aarch64-linux-android
+```
+
+Release workflow rule:
+
+- Version in `Cargo.toml` is used for local `make release` artifact naming.
+- Git tag releases must use `v<version>` and must exactly match `Cargo.toml`.
+- Example:
+
+```sh
+git tag -a v1.2.3
+git push origin v1.2.3
+```
+
+This publishes `NoSaveChat-v1.2.3-aarch64-linux-android-release.apk`.
 
 For x86_64 emulators, use:
 
 ```sh
-dx bundle --android --release --package-types apk --target x86_64-linux-android
+make android-apk-bundle TARGET=x86_64-linux-android
 ```
 
 ## Project Layout

@@ -15,7 +15,6 @@ permissions:
 env:
   DIOXUS_CLI_VERSION: "0.7.9"
   TAILWIND_VERSION: "v4.3.0"
-  APK_PATH: dist/NoSaveChat-aarch64-linux-android.apk
   DX_BIN_DIR: .github/bin/dx-0.7.9
   TAILWIND_BIN_DIR: .github/bin/tailwindcss-v4.3.0
 
@@ -82,6 +81,20 @@ jobs:
           ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/30.0.14904198
         run: cargo check --target aarch64-linux-android
 
+      - name: Resolve app version and output path
+        id: app-version
+        run: |
+          VERSION=$(awk '/^\s*version\s*=/{gsub(/\"/, "", $3); print $3; exit}' Cargo.toml)
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG_VERSION="${GITHUB_REF_NAME#v}"
+            if [[ "$TAG_VERSION" != "$VERSION" ]]; then
+              echo "Release tag mismatch: tag version is v${TAG_VERSION} but Cargo.toml version is ${VERSION}."
+              exit 1
+            fi
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "apk_path=dist/NoSaveChat-v${VERSION}-aarch64-linux-android-release.apk" >> "$GITHUB_OUTPUT"
+
       - name: Install Dioxus CLI
         if: github.event_name != 'pull_request'
         run: |
@@ -105,18 +118,18 @@ jobs:
         if: github.event_name != 'pull_request'
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/30.0.14904198
-        run: ./scripts/build-android-apk-with-icon.sh aarch64-linux-android
+        run: make android-release-build TARGET=aarch64-linux-android PROJECT_VERSION=${{ steps.app-version.outputs.version }}
 
       - name: Upload APK artifact
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: NoSaveChat-aarch64-linux-android
-          path: ${{ env.APK_PATH }}
+          path: ${{ steps.app-version.outputs.apk_path }}
           if-no-files-found: error
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ env.APK_PATH }}
+          files: ${{ steps.app-version.outputs.apk_path }}

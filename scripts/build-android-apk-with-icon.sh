@@ -4,16 +4,27 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 app_name="nosave-chat"
 target_triple="${1:-aarch64-linux-android}"
+build_variant="${2:-debug}"
+out_apk="${3:-}"
 icon="$root/assets/icon.png"
 android_app="$root/target/dx/$app_name/release/android/app"
 res_dir="$android_app/app/src/main/res"
 out_dir="$root/dist"
-out_apk="$out_dir/NoSaveChat-${target_triple}.apk"
+default_apk="$out_dir/NoSaveChat-${target_triple}-${build_variant}.apk"
 
 if [[ ! -f "$icon" ]]; then
   echo "Missing icon: $icon" >&2
   echo "Create it with: imagemagick convert or magick (example: convert assets/icon-1024.png -resize 256x256 -alpha off -background transparent -flatten PNG32:assets/icon.png)" >&2
   exit 1
+fi
+
+if [[ "$build_variant" != "debug" && "$build_variant" != "release" ]]; then
+  echo "Invalid build variant: $build_variant. Use debug or release." >&2
+  exit 1
+fi
+
+if [[ -z "$out_apk" ]]; then
+  out_apk="$default_apk"
 fi
 
 cd "$root"
@@ -56,9 +67,10 @@ rm -f "$res_dir/drawable-v24/ic_launcher_foreground.xml"
 
 cd "$android_app"
 ./gradlew clean
-./gradlew assembleDebug
+assemble_task="assemble$(tr '[:lower:]' '[:upper:]' <<< "$build_variant")"
+./gradlew "$assemble_task"
 
 mkdir -p "$out_dir"
-cp "$android_app/app/build/outputs/apk/debug/app-debug.apk" "$out_apk"
+cp "$android_app/app/build/outputs/apk/$build_variant/app-$build_variant.apk" "$out_apk"
 
 echo "Built $out_apk"
