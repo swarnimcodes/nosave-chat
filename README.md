@@ -1,58 +1,85 @@
-# Development
+# NoSave Chat
 
-Your new jumpstart project includes basic organization with an organized `assets` folder and a `components` folder.
-If you chose to develop with the router feature, you will also have a `views` folder.
+NoSave Chat is a small Android app for starting chats without saving a phone number first. Enter a number with country code, then open it in WhatsApp, Telegram, or Signal.
 
-```
-project/
-├─ assets/ # Any assets that are used by the app should be placed here
-├─ src/
-│  ├─ main.rs # The entrypoint for the app. It also defines the routes for the app.
-│  ├─ components/
-│  │  ├─ mod.rs # Defines the components module
-│  │  ├─ hero.rs # The Hero component for use in the home page
-│  │  ├─ echo.rs # The echo component uses server functions to communicate with the server
-│  ├─ views/ # The views each route will render in the app.
-│  │  ├─ mod.rs # Defines the module for the views route and re-exports the components for each route
-│  │  ├─ blog.rs # The component that will render at the /blog/:id route
-│  │  ├─ home.rs # The component that will render at the / route
-├─ Cargo.toml # The Cargo.toml file defines the dependencies and feature flags for your project
-```
+The app is built with [Dioxus 0.7](https://dioxuslabs.com/) and Tailwind CSS.
 
-### Automatic Tailwind (Dioxus 0.7+)
+## Features
 
-As of Dioxus 0.7, there no longer is a need to manually install tailwind. Simply `dx serve` and you're good to go!
+- Open WhatsApp chats with `wa.me` links.
+- Open Telegram phone links.
+- Open Signal phone links.
+- Mobile-first Dioxus layout.
+- Catppuccin-inspired Tailwind theme.
 
-Automatic tailwind is supported by checking for a file called `tailwind.css` in your app's manifest directory (next to Cargo.toml). To customize the file, use the dioxus.toml:
+## Requirements
 
-```toml
-[application]
-tailwind_input = "my.css"
-tailwind_output = "assets/out.css"
+- Rust
+- Dioxus CLI `0.7`
+- Android SDK, NDK, and emulator tooling
+- Tailwind CSS CLI
+
+Useful targets:
+
+```sh
+rustup target add aarch64-linux-android
+rustup target add x86_64-linux-android
 ```
 
-### Tailwind Manual Install
+## Development
 
-To use tailwind plugins or manually customize tailwind, you can can install the Tailwind CLI and use it directly.
+Run Tailwind in one terminal:
 
-1. Install npm: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
-2. Install the Tailwind CSS CLI: https://tailwindcss.com/docs/installation/tailwind-cli
-3. Run the following command in the root of the project to start the Tailwind CSS compiler:
-
-```bash
-npx @tailwindcss/cli -i ./input.css -o ./assets/tailwind.css --watch
+```sh
+tailwindcss -i ./tailwind.css -o ./assets/tailwind.css --watch
 ```
 
-### Serving Your App
+Run the Android app in another terminal:
 
-Run the following command in the root of your project to start developing with the default platform:
-
-```bash
-dx serve --platform mobile
+```sh
+dx serve --android
 ```
 
-To run for a different platform, use the `--platform platform` flag. E.g.
-```bash
-dx serve --platform desktop
+The generated stylesheet is committed at `assets/tailwind.css` because automatic Tailwind generation through `dx serve --android` may not run consistently in this project.
+
+## Build
+
+Build a release Android App Bundle for ARM64 phones:
+
+```sh
+dx bundle --android --release --package-types aab --target aarch64-linux-android
 ```
 
+Build an APK for local install/testing:
+
+```sh
+dx bundle --android --release --package-types apk --target aarch64-linux-android
+```
+
+For x86_64 emulators, use:
+
+```sh
+dx bundle --android --release --package-types apk --target x86_64-linux-android
+```
+
+## Project Layout
+
+```text
+assets/
+  favicon.ico
+  tailwind.css
+src/
+  components/
+    hero.rs
+  views/
+    home.rs
+    layout.rs
+  main.rs
+tailwind.css
+Cargo.toml
+Dioxus.toml
+```
+
+## Notes
+
+This app is currently mobile-only. It does not use Dioxus fullstack features. A future local history feature can be implemented with local device storage and does not require a backend.
