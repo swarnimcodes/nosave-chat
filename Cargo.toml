@@ -1,0 +1,16 @@
+[package]
+name = "nosave-chat"
+version = "0.1.0"
+authors = ["Swarnim <swarnim14.9@hotmail.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dioxus = { version = "0.7.1", features = ["router"] }
+dioxus-html = { version = "0.7.9", features = ["serialize"] }
+serde = "1.0.228"
+
+[features]
+default = ["mobile"]
+mobile = ["dioxus/mobile"]
